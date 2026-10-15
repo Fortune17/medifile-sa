@@ -213,7 +213,7 @@ BEGIN
 END;
 $$;
 
--- Exact-match directory search (SA ID or unique patient number)
+-- Directory search by exact identifier or partial patient name
 CREATE OR REPLACE FUNCTION search_patients(p_query TEXT)
 RETURNS TABLE (
   id UUID,
@@ -245,9 +245,12 @@ BEGIN
     ), 'none') AS consent_status
   FROM patients p
   JOIN profiles pr ON pr.id = p.id
-  WHERE p.id_number = btrim(p_query)
-     OR p.unique_patient_number = btrim(p_query)
-     OR lower(pr.first_name || ' ' || pr.last_name) = lower(btrim(p_query));
+  WHERE btrim(p_query) <> ''
+    AND (
+      p.id_number = btrim(p_query)
+      OR p.unique_patient_number = btrim(p_query)
+      OR position(lower(btrim(p_query)) IN lower(pr.first_name || ' ' || pr.last_name)) > 0
+    );
 END;
 $$;
 
