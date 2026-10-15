@@ -51,8 +51,7 @@ export default function AppointmentsPage() {
     load();
   }, [profile.id, profile.role]);
 
-  const searchPatients = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const searchPatients = async () => {
     const value = patientQuery.trim();
     if (!value) return;
     setSearchingPatients(true);
@@ -129,11 +128,14 @@ export default function AppointmentsPage() {
                   <p className="font-semibold text-slate-900">{item.reason || 'Appointment'}</p>
                   {isProvider(profile.role) && (
                     <p className="text-sm text-slate-600">
-                      {patientNames[item.patient_id] || 'Patient'}
-                      {patientNames[item.patient_id] && ' · '}
-                      <Link to={`/dashboard/patients/${item.patient_id}`} className="text-primary hover:underline">
-                        Open record
-                      </Link>
+                      {patientNames[item.patient_id] ? (
+                        <>
+                          {patientNames[item.patient_id]} ·{' '}
+                          <Link to={`/dashboard/patients/${item.patient_id}`} className="text-primary hover:underline">
+                            Open record
+                          </Link>
+                        </>
+                      ) : 'Patient details unavailable'}
                     </p>
                   )}
                   <p className="text-sm text-slate-500">{formatDate(item.scheduled_at, 'dd MMM yyyy HH:mm')}</p>
@@ -167,7 +169,7 @@ export default function AppointmentsPage() {
                   </div>
                 ) : (
                   <>
-                    <form onSubmit={searchPatients} className="flex gap-2">
+                    <div className="flex gap-2">
                       <input
                         value={patientQuery}
                         onChange={(e) => setPatientQuery(e.target.value)}
@@ -175,11 +177,11 @@ export default function AppointmentsPage() {
                         placeholder="Name, SA ID, or patient number"
                         aria-label="Search patients"
                       />
-                      <button type="submit" disabled={searchingPatients || !patientQuery.trim()} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
+                      <button type="button" onClick={() => searchPatients()} disabled={searchingPatients || !patientQuery.trim()} className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
                         <Search className="h-4 w-4" />
                         {searchingPatients ? 'Searching' : 'Search'}
                       </button>
-                    </form>
+                    </div>
                     {patientResults.length > 0 && (
                       <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
                         {patientResults.map((patient) => (

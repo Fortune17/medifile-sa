@@ -125,6 +125,7 @@ function DoctorDashboard({ profile }: { profile: OutletContext['profile'] }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patientNames, setPatientNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const start = new Date();
@@ -139,7 +140,19 @@ function DoctorDashboard({ profile }: { profile: OutletContext['profile'] }) {
       .gte('scheduled_at', start.toISOString())
       .lte('scheduled_at', end.toISOString())
       .order('scheduled_at')
-      .then(({ data }) => setAppointments((data as Appointment[]) || []));
+      .then(async ({ data }) => {
+        const todaysAppointments = (data as Appointment[]) || [];
+        setAppointments(todaysAppointments);
+        if (todaysAppointments.length === 0) return;
+        const patientIds = [...new Set(todaysAppointments.map((appointment) => appointment.patient_id))];
+        const { data: patients } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', patientIds);
+        setPatientNames(Object.fromEntries(
+          (patients || []).map((patient) => [patient.id, `${patient.first_name} ${patient.last_name}`]),
+        ));
+      });
   }, [profile.id]);
 
   return (
@@ -191,6 +204,14 @@ function DoctorDashboard({ profile }: { profile: OutletContext['profile'] }) {
               {appointments.map((a) => (
                 <div key={a.id} className="text-sm">
                   <p className="font-medium text-slate-900">{a.reason || 'Appointment'}</p>
+                  <p className="text-slate-600">
+                    {patientNames[a.patient_id] ? (
+                      <>
+                        {patientNames[a.patient_id]} ·{' '}
+                        <Link to={`/dashboard/patients/${a.patient_id}`} className="text-primary hover:underline">Open record</Link>
+                      </>
+                    ) : 'Patient details unavailable'}
+                  </p>
                   <p className="text-slate-500">{formatDate(a.scheduled_at, 'HH:mm')}</p>
                 </div>
               ))}
